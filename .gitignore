@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.log
+venv/
+.venv/
+
+# IDE
+.vscode/
+
+# Config
+ru2en.json
+
+# Audio
+*.wav

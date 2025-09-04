@@ -1,0 +1,7 @@
+numpy
+sounddevice
+soundfile
+pyperclip
+pynput
+openai
+pywin32; platform_system == "Windows"
