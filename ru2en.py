@@ -310,7 +310,7 @@ def _determine_focus_control():
     return hwnd_win, focus_hwnd
 
 def paste_text(text: str):
-    """Буфер → возврат фокуса → WM_PASTE → Ctrl+V → Ctrl+V(pynput)."""
+    """Буфер → возврат фокуса → Ctrl+V (WinAPI) → Ctrl+V (pynput)."""
     hwnd_win, focus_hwnd = _determine_focus_control()
     if hwnd_win:
         _set_foreground_and_focus(hwnd_win, focus_hwnd)
@@ -325,12 +325,10 @@ def paste_text(text: str):
     release_modifiers()
     time.sleep(0.02)
 
-    target_for_paste = focus_hwnd or hwnd_win
-    if target_for_paste and _wm_paste(target_for_paste):
-        return
-    if _ctrl_v_win():
-        return
-    _ctrl_v_pynput()
+    # Пробуем Ctrl+V как основной и самый надежный метод.
+    # WM_PASTE убран, чтобы избежать двойной вставки в приложениях типа Notepad++.
+    if not _ctrl_v_win():
+        _ctrl_v_pynput() # Фоллбэк на pynput, если WinAPI не сработал
 
 # ------------ Processing -------------
 def stop_and_process(status_cb=None, on_done=None):
@@ -343,6 +341,9 @@ def stop_and_process(status_cb=None, on_done=None):
         if not frames:
             if status_cb: status_cb("Ничего не записано."); return
         audio_np = np.concatenate(frames, axis=0).astype(np.int16)
+        duration_sec = len(audio_np) / SAMPLE_RATE
+        if duration_sec < 0.5:
+            if status_cb: status_cb(f"Запись слишком короткая ({duration_sec:.1f}с). Повторите."); return
         if audio_np.size == 0 or np.max(np.abs(audio_np)) < 200:
             if status_cb: status_cb("Тишина/слишком тихо. Повторите."); return
 
@@ -590,15 +591,6 @@ class App(tk.Tk):
         self.destroy()
 
     def on_done(self, text): pass  # совместимость с коллбеком
-
-# ------------- Hotkey glue -------------
-def start_hotkey_thread_if_enabled():
-    if not CFG.get("global_hotkey_enabled", True): return
-    global _hotkey_thread
-    if _hotkey_thread and _hotkey_thread.is_alive(): return
-    _hotkey_stop_evt.clear()
-    _hotkey_thread = threading.Thread(target=hotkey_message_loop, daemon=True)
-    _hotkey_thread.start()
 
 # ------------- Main -------------
 def main():
