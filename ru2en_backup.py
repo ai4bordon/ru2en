@@ -101,7 +101,7 @@ def start_recording(status_cb=None):
     try:
         with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=0, dtype=DTYPE,
                                channels=CHANNELS, callback=sd_callback):
-            if status_cb: status_cb("Запись… Говорите по-русски. Ещё раз Ctrl+Пробел — стоп.")
+            if status_cb: status_cb("Запись… Говорите по-русски. Ещё раз Ctrl+Shift+R — стоп.")
             while recording_flag.is_set():
                 try:
                     frames.append(np.frombuffer(audio_q.get(timeout=0.1), dtype=np.int16))
@@ -398,10 +398,10 @@ def _toggle_record_hotkey_threadsafe():
 def hotkey_message_loop():
     if not (RegisterHotKey and GetMessageW):
         print("[WARN] WinAPI хоткей недоступен."); return
-    if not RegisterHotKey(None, HK_ID, MOD_CONTROL, 0x20):
-        print("[WARN] RegisterHotKey: не удалось зарегистрировать Ctrl+Пробел. Конфликт или нет прав.")
+    if not RegisterHotKey(None, HK_ID, MOD_CONTROL | MOD_SHIFT, ord('R')):
+        print("[WARN] RegisterHotKey: не удалось зарегистрировать Ctrl+Shift+R. Конфликт или нет прав.")
         return
-    print("[INFO] Глобальный хоткей активен: Ctrl+Пробел")
+    print("[INFO] Глобальный хоткей активен: Ctrl+Shift+R")
 
     msg = wintypes.MSG()
     while not _hotkey_stop_evt.is_set():
@@ -444,8 +444,8 @@ def _mode_label(v: str) -> str:
 INSTR_TEXT = (
     "Как пользоваться:\n"
     "1) Откройте чат и поставьте курсор в поле ввода.\n"
-    "2) Нажмите Ctrl+Пробел — начнётся запись.\n"
-    "3) Снова нажмите Ctrl+Пробел — запись остановится, текст распознается\n"
+    "2) Нажмите Ctrl+Shift+R — начнётся запись.\n"
+    "3) Снова нажмите Ctrl+Shift+R — запись остановится, текст распознается\n"
     "   и автоматически вставится в активный чат.\n"
     "Режим вывода:\n"
     "  • Английский — перевод с русской речи и стилизация.\n"
@@ -468,7 +468,7 @@ class App(tk.Tk):
         except Exception: GUI_HWND = None
 
         pad={'padx':10,'pady':6}
-        self.status_var=tk.StringVar(value="Готов. Горячая клавиша: Ctrl+Пробел")
+        self.status_var=tk.StringVar(value="Готов. Горячая клавиша: Ctrl+Shift+R")
 
         r=0
         ttk.Label(self,text="Режим вывода:").grid(column=0,row=r,sticky="w",**pad)
@@ -544,7 +544,7 @@ class App(tk.Tk):
 
     def print_banner(self):
         print("RU→EN / RU→RU — хоткей-режим")
-        print("Hotkey: Ctrl+Пробел", "(вкл)" if CFG.get("global_hotkey_enabled",True) else "(выкл)")
+        print("Hotkey: Ctrl+Shift+R", "(вкл)" if CFG.get("global_hotkey_enabled",True) else "(выкл)")
         print(f"Mode={CFG.get('output_mode','english')} | STT={CFG['stt_model']} | StyleModel={CFG['style_model']} | Style={CFG['style_profile']} | AutoPaste={CFG.get('auto_paste',True)}")
 
     def status(self,msg): 
